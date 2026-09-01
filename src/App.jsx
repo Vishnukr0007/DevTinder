@@ -1,16 +1,16 @@
-
-
+import Navbar from "./components/NavBar";
 
 function App() {
+  
+
 
 
   return (
-    <>
-      
-          <h1>Get started</h1>
-         
-      
-    </>
+    <div>
+
+      <Navbar/>
+      <h1>hello</h1>
+    </div>
   )
 }
 
