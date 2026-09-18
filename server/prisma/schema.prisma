@@ -1,0 +1,210 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ExperienceLevel {
+  BEGINNER
+  JUNIOR
+  MID_LEVEL
+  SENIOR
+  EXPERT
+}
+
+enum Role {
+  USER
+  ADMIN
+  MODERATOR
+  DEVELOPER
+  RECRUITER
+}
+
+enum ConnectionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  IGNORED
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+enum ProjectStatus {
+  RECRUITING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum ProjectMemberRole {
+  OWNER
+  MEMBER
+}
+
+enum ProjectJoinStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  INVITED
+}
+
+model User {
+  id               String          @id @default(uuid())
+
+  firstName        String
+  lastName         String
+  email            String          @unique
+  password         String?
+
+  googleId         String?         @unique
+  githubId         String?         @unique
+  provider         String          @default("LOCAL")
+
+  headline         String?
+  bio              String?         @db.Text
+  avatarUrl        String?
+  location         String?
+  skills           String[]
+
+  experienceLevel  ExperienceLevel @default(BEGINNER)
+  isOpenToPairing  Boolean         @default(true)
+  role             Role            @default(USER)
+  isSuspended      Boolean         @default(false)
+  isEmailVerified  Boolean         @default(false)
+
+  emailVerificationToken   String?
+  emailVerificationExpires DateTime?
+
+  resetPasswordToken   String?
+  resetPasswordExpires DateTime?
+
+  githubUrl        String?
+  linkedinUrl      String?
+
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  userSkills          UserSkill[]
+  projects            Project[]
+  projectMemberships  ProjectMember[]
+  sentConnections     ConnectionRequest[] @relation("SentConnections")
+  receivedConnections ConnectionRequest[] @relation("ReceivedConnections")
+  sentMessages        Message[]           @relation("SentMessages")
+  receivedMessages    Message[]           @relation("ReceivedMessages")
+  savedDevelopers     SavedDeveloper[]    @relation("SavedByUsers")
+  savedByUsers        SavedDeveloper[]    @relation("SavedTargetUsers")
+  reportsSent         Report[]            @relation("ReportSender")
+  reportsReceived     Report[]            @relation("ReportTargetUser")
+}
+
+model UserSkill {
+  id        String     @id @default(uuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  level     SkillLevel @default(BEGINNER)
+  createdAt DateTime   @default(now())
+
+  @@unique([userId, name])
+}
+
+model Project {
+  id          String        @id @default(uuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String        @db.Text
+  techStack   String[]
+  repoUrl     String?
+  liveUrl     String?
+  status      ProjectStatus @default(RECRUITING)
+  maxMembers  Int           @default(5)
+  members     ProjectMember[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model ProjectMember {
+  id        String            @id @default(uuid())
+  projectId String
+  project   Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      ProjectMemberRole @default(MEMBER)
+  status    ProjectJoinStatus @default(PENDING)
+  createdAt DateTime          @default(now())
+
+  @@unique([projectId, userId])
+}
+
+model ConnectionRequest {
+  id         String           @id @default(uuid())
+  senderId   String
+  sender     User             @relation("SentConnections", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId String
+  receiver   User             @relation("ReceivedConnections", fields: [receiverId], references: [id], onDelete: Cascade)
+  status     ConnectionStatus @default(PENDING)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  @@unique([senderId, receiverId])
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  senderId   String
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId String
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  content    String   @db.Text
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+model SavedDeveloper {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation("SavedByUsers", fields: [userId], references: [id], onDelete: Cascade)
+  savedId   String
+  savedUser User     @relation("SavedTargetUsers", fields: [savedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, savedId])
+}
+
+enum ReportStatus {
+  PENDING
+  RESOLVED
+  DISMISSED
+}
+
+model Report {
+  id           String       @id @default(uuid())
+  reporterId   String
+  reporter     User         @relation("ReportSender", fields: [reporterId], references: [id], onDelete: Cascade)
+  targetUserId String?
+  targetUser   User?        @relation("ReportTargetUser", fields: [targetUserId], references: [id], onDelete: Cascade)
+  reason       String
+  details      String?      @db.Text
+  status       ReportStatus @default(PENDING)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model SystemSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+}
