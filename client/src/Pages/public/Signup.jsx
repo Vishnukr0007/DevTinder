@@ -4,6 +4,8 @@ import { useDispatch } from "react-redux";
 import { signupUser } from "../../store/authSlice.js";
 import Button from "../../components/Button/Button.jsx";
 import SocialAuthButtons from "../../components/SocialAuthButtons/SocialAuthButtons.jsx";
+import PasswordInput from "../../components/PasswordInput/PasswordInput.jsx";
+import { validatePassword } from "../../utils/passwordUtils.js";
 
 export const Signup = () => {
   const dispatch = useDispatch();
@@ -21,6 +23,13 @@ export const Signup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    const pwdValidation = validatePassword(formData.password);
+    if (!pwdValidation.isStrong) {
+      setError("Please create a strong password meeting all 5 security criteria below.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -60,7 +69,7 @@ export const Signup = () => {
               </label>
               <input
                 type="text"
-                placeholder="Alex"
+                placeholder="First name"
                 required
                 className="input input-bordered rounded-xl w-full"
                 value={formData.firstName}
@@ -73,7 +82,7 @@ export const Signup = () => {
               </label>
               <input
                 type="text"
-                placeholder="Dev"
+                placeholder="Last name"
                 required
                 className="input input-bordered rounded-xl w-full"
                 value={formData.lastName}
@@ -88,7 +97,7 @@ export const Signup = () => {
             </label>
             <input
               type="email"
-              placeholder="alex.dev@example.com"
+              placeholder="name@example.com"
               required
               className="input input-bordered rounded-xl w-full"
               value={formData.email}
@@ -96,20 +105,17 @@ export const Signup = () => {
             />
           </div>
 
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text font-bold">Password</span>
-            </label>
-            <input
-              type="password"
-              placeholder="Min 6 characters"
-              required
-              minLength={6}
-              className="input input-bordered rounded-xl w-full"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            />
-          </div>
+          <PasswordInput
+            id="signup-password"
+            name="password"
+            label="Create Strong Password"
+            value={formData.password}
+            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            placeholder="Min 8 chars, 1 upper, 1 lower, 1 number, 1 symbol"
+            required
+            showStrength={true}
+            autoComplete="new-password"
+          />
 
           <Button type="submit" loading={loading} className="w-full rounded-xl btn-primary mt-2">
             Create Developer Account 🎉

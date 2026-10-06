@@ -3,12 +3,20 @@ import crypto from "crypto";
 import prisma from "../config/prisma.js";
 import generateToken from "../utils/generateToken.js";
 import {
+  forgotPasswordService,
+  verifyOtpService,
+  resetPasswordService,
+} from "../services/auth.service.js";
+import {
   getGoogleAuthUrl,
   getGoogleUser,
   getGithubAuthUrl,
   getGithubUser,
   findOrCreateOAuthUser,
 } from "../services/oauth.service.js";
+import {
+  sendWelcomeVerificationEmail,
+} from "../services/email.service.js";
 
 /**
  * @desc    1. Register a new Developer (USER role)
@@ -66,6 +74,20 @@ export const signup = async (req, res) => {
       },
     });
 
+    const clientOrigin = req.headers.origin || req.headers.referer || "http://localhost:5173";
+    const verificationUrl = `${clientOrigin}/verify-email?token=${verificationToken}`;
+    const userName = `${user.firstName} ${user.lastName || ""}`.trim();
+
+    try {
+      await sendWelcomeVerificationEmail({
+        toEmail: user.email,
+        userName,
+        verificationUrl,
+      });
+    } catch (err) {
+      console.warn("⚠️ Failed to dispatch welcome verification email:", err.message);
+    }
+
     const token = generateToken(user.id, user.role);
 
     res.cookie("token", token, {
@@ -77,9 +99,8 @@ export const signup = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Developer registered successfully. Verification token generated.",
+      message: "Developer registered successfully. Verification email dispatched to your inbox.",
       token,
-      verificationToken, // Token for client email confirmation flow
       user,
     });
   } catch (error) {
@@ -263,40 +284,52 @@ export const forgotPassword = async (req, res) => {
       });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase().trim() },
-    });
-
-    if (!user) {
-      return res.status(200).json({
-        success: true,
-        message: "If that email exists in our records, a password reset token has been generated.",
-      });
-    }
-
-    const resetToken = crypto.randomBytes(32).toString("hex");
-    const hashedResetToken = crypto.createHash("sha256").update(resetToken).digest("hex");
-    const resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000);
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        resetPasswordToken: hashedResetToken,
-        resetPasswordExpires,
-      },
-    });
+    const clientOrigin = req.headers.origin || req.headers.referer || "http://localhost:5173";
+    await forgotPasswordService(email, clientOrigin);
 
     return res.status(200).json({
       success: true,
-      message: "Password reset token generated successfully",
-      resetToken,
-      expiresInMinutes: 15,
+      message: "A 6-digit OTP code has been sent to your email address.",
     });
   } catch (error) {
     console.error("Forgot Password Error:", error);
-    return res.status(500).json({
+    const statusCode = error.statusCode || 500;
+    return res.status(statusCode).json({
       success: false,
-      message: "Internal server error initiating forgot password",
+      message: error.message || "Internal server error initiating forgot password",
+    });
+  }
+};
+
+/**
+ * @desc    5b. Verify 6-digit OTP Code
+ * @route   POST /api/auth/verify-otp
+ * @access  Public
+ */
+export const verifyOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Email address and OTP code are required",
+      });
+    }
+
+    const { resetToken } = await verifyOtpService(email, otp);
+
+    return res.status(200).json({
+      success: true,
+      message: "OTP verified successfully! Please set your new password.",
+      resetToken,
+    });
+  } catch (error) {
+    console.error("Verify OTP Error:", error);
+    const statusCode = error.statusCode || 500;
+    return res.status(statusCode).json({
+      success: false,
+      message: error.message || "Internal server error verifying OTP",
     });
   }
 };
@@ -310,39 +343,14 @@ export const resetPassword = async (req, res) => {
   try {
     const { resetToken, newPassword } = req.body;
 
-    if (!resetToken || !newPassword || newPassword.length < 6) {
+    if (!resetToken || !newPassword) {
       return res.status(400).json({
         success: false,
-        message: "Reset token and new password (min 6 chars) are required",
+        message: "Reset token and new password are required",
       });
     }
 
-    const hashedResetToken = crypto.createHash("sha256").update(resetToken).digest("hex");
-
-    const user = await prisma.user.findFirst({
-      where: {
-        resetPasswordToken: hashedResetToken,
-        resetPasswordExpires: { gt: new Date() },
-      },
-    });
-
-    if (!user) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid or expired password reset token",
-      });
-    }
-
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        password: hashedPassword,
-        resetPasswordToken: null,
-        resetPasswordExpires: null,
-      },
-    });
+    await resetPasswordService(resetToken, newPassword);
 
     return res.status(200).json({
       success: true,
@@ -350,9 +358,10 @@ export const resetPassword = async (req, res) => {
     });
   } catch (error) {
     console.error("Reset Password Error:", error);
-    return res.status(500).json({
+    const statusCode = error.statusCode || 500;
+    return res.status(statusCode).json({
       success: false,
-      message: "Internal server error resetting password",
+      message: error.message || "Internal server error resetting password",
     });
   }
 };

@@ -9,7 +9,12 @@ const userSocketMap = new Map();
 export const initSocket = (server) => {
   io = new Server(server, {
     cors: {
-      origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+      origin: (origin, callback) => {
+        if (!origin || process.env.NODE_ENV !== "production") {
+          return callback(null, true);
+        }
+        return callback(null, origin);
+      },
       credentials: true,
     },
   });
@@ -90,9 +95,14 @@ export const initSocket = (server) => {
           },
         });
 
+        const sender = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { id: true, firstName: true, lastName: true, avatarUrl: true },
+        });
+
         const receiverSocketId = userSocketMap.get(receiverId);
         if (receiverSocketId) {
-          io.to(receiverSocketId).emit("receive_message", { message });
+          io.to(receiverSocketId).emit("receive_message", { message, sender });
         }
 
         if (callback) callback({ success: true, message });
@@ -131,7 +141,7 @@ export const initSocket = (server) => {
 
         const senderSocketId = userSocketMap.get(senderId);
         if (senderSocketId) {
-          io.to(senderSocketId).emit("messages_read", { readBy: userId });
+          io.to(senderSocketId).emit("messages_read", { readBy: userId, senderId });
         }
       } catch (err) {
         console.error("Socket mark_messages_read error:", err);

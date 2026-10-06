@@ -1,4 +1,4 @@
-import { updateUserProfile, addUserSkill, removeUserSkill } from "../services/user.service.js";
+import { updateUserProfile, addUserSkill, removeUserSkill, updateUserAvatar } from "../services/user.service.js";
 
 export const updateProfile = async (req, res) => {
   try {
@@ -7,6 +7,25 @@ export const updateProfile = async (req, res) => {
     return res.status(200).json({ success: true, message: "Profile updated successfully", user });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Internal server error updating profile" });
+  }
+};
+
+export const uploadAvatarHandler = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "Please provide an image file to upload." });
+    }
+    const user = await updateUserAvatar(userId, req.file);
+    return res.status(200).json({
+      success: true,
+      message: "Avatar uploaded successfully",
+      avatarUrl: user.avatarUrl,
+      user,
+    });
+  } catch (error) {
+    console.error("Avatar Upload Error:", error);
+    return res.status(500).json({ success: false, message: error.message || "Failed to upload avatar" });
   }
 };
 

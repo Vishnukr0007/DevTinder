@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Provider, useDispatch } from "react-redux";
 import { store } from "./store/store.js";
 import { fetchCurrentUser } from "./store/authSlice.js";
+import { ToastProvider } from "./context/ToastContext.jsx";
+import { SocketProvider } from "./context/SocketContext.jsx";
 
 // Layouts
 import PublicLayout from "./layouts/PublicLayout.jsx";
@@ -14,6 +16,7 @@ import Landing from "./Pages/public/Landing.jsx";
 import Login from "./Pages/public/Login.jsx";
 import Signup from "./Pages/public/Signup.jsx";
 import ForgotPassword from "./Pages/public/ForgotPassword.jsx";
+import ResetPassword from "./Pages/public/ResetPassword.jsx";
 
 // User Pages
 import UserDashboard from "./Pages/user/Dashboard.jsx";
@@ -46,6 +49,7 @@ function AppContent() {
           <Route path="login" element={<Login />} />
           <Route path="signup" element={<Signup />} />
           <Route path="forgot-password" element={<ForgotPassword />} />
+          <Route path="reset-password" element={<ResetPassword />} />
         </Route>
 
         {/* Authenticated Developer Routes */}
@@ -79,7 +83,11 @@ function AppContent() {
 function App() {
   return (
     <Provider store={store}>
-      <AppContent />
+      <ToastProvider>
+        <SocketProvider>
+          <AppContent />
+        </SocketProvider>
+      </ToastProvider>
     </Provider>
   );
 }

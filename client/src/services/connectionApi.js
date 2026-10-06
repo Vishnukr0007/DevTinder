@@ -1,7 +1,10 @@
 import { fetchApi } from "./api.js";
 
 export const connectionApi = {
-  getDiscoveryFeed: (page = 1, limit = 10) => fetchApi(`/discovery/feed?page=${page}&limit=${limit}`, { method: "GET" }),
+  getDiscoveryFeed: (page = 1, limit = 10, filters = {}) => {
+    const params = new URLSearchParams({ page, limit, ...filters });
+    return fetchApi(`/discovery/feed?${params.toString()}`, { method: "GET" });
+  },
   searchDevelopers: (q) => fetchApi(`/discovery/search?q=${encodeURIComponent(q)}`, { method: "GET" }),
   filterDevelopers: (params = {}) => {
     const query = new URLSearchParams(params).toString();

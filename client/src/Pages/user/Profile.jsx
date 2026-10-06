@@ -4,6 +4,7 @@ import { updateUserProfileThunk, fetchCurrentUser } from "../../store/authSlice.
 import { userApi } from "../../services/userApi.js";
 import SkillBadge from "../../components/SkillBadge/SkillBadge.jsx";
 import Button from "../../components/Button/Button.jsx";
+import { getAvatarUrl } from "../../utils/avatar.js";
 
 export const Profile = () => {
   const dispatch = useDispatch();
@@ -11,7 +12,35 @@ export const Profile = () => {
 
   const [activeTab, setActiveTab] = useState("general"); // "general" | "skills" | "social"
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [toast, setToast] = useState(null);
+
+  const handleAvatarFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast("File is too large. Max allowed size is 5MB.", "error");
+      return;
+    }
+
+    try {
+      setUploadingAvatar(true);
+      const res = await userApi.uploadAvatar(file);
+      if (res.success && res.avatarUrl) {
+        setFormData((prev) => ({ ...prev, avatarUrl: res.avatarUrl }));
+        showToast("Avatar uploaded to storage successfully! 📸", "success");
+        dispatch(fetchCurrentUser());
+      } else {
+        showToast(res.message || "Failed to upload avatar.", "error");
+      }
+    } catch (err) {
+      showToast(err.message || "Error uploading image to storage.", "error");
+    } finally {
+      setUploadingAvatar(false);
+      e.target.value = "";
+    }
+  };
 
   // Form State
   const [formData, setFormData] = useState({
@@ -211,12 +240,7 @@ export const Profile = () => {
                 <div className="avatar">
                   <div className="w-24 h-24 rounded-full ring-4 ring-base-100 shadow-xl bg-base-200 overflow-hidden">
                     <img
-                      src={
-                        formData.avatarUrl ||
-                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(
-                          user?.email || "dev"
-                        )}`
-                      }
+                      src={getAvatarUrl(formData.avatarUrl, user?.email || "dev")}
                       alt="Live Preview Avatar"
                       onError={(e) => {
                         e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(
@@ -341,23 +365,47 @@ export const Profile = () => {
               </h2>
 
               <form onSubmit={handleSaveProfile} className="space-y-5">
-                {/* Avatar URL & Preset Selector */}
+                {/* Avatar Image Upload & Preset Selector */}
                 <div className="space-y-3 p-4 bg-base-200/50 rounded-2xl border border-base-300">
-                  <label className="label py-0">
+                  <div className="flex justify-between items-center">
                     <span className="label-text font-bold text-xs uppercase tracking-wider text-base-content/70">
                       Avatar Image & Presets
                     </span>
-                  </label>
+                    <span className="badge badge-primary badge-outline text-[10px] font-mono font-bold">
+                      Cloudinary / Storage Supported ☁️
+                    </span>
+                  </div>
+
+                  {/* Upload Image File Input */}
+                  <div className="flex flex-col sm:flex-row gap-2 items-center">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarFileChange}
+                      disabled={uploadingAvatar}
+                      className="file-input file-input-bordered file-input-primary file-input-sm w-full rounded-xl text-xs"
+                    />
+                    {uploadingAvatar && (
+                      <span className="loading loading-spinner loading-sm text-primary"></span>
+                    )}
+                  </div>
+
+                  <div className="relative flex py-1 items-center">
+                    <div className="flex-grow border-t border-base-300"></div>
+                    <span className="flex-shrink mx-2 text-[10px] uppercase font-bold text-base-content/40">Or Enter URL / Presets</span>
+                    <div className="flex-grow border-t border-base-300"></div>
+                  </div>
+
                   <input
                     type="url"
                     placeholder="https://example.com/avatar.jpg"
-                    className="input input-bordered rounded-xl w-full text-sm"
+                    className="input input-bordered input-sm sm:input-md rounded-xl w-full text-sm"
                     value={formData.avatarUrl}
                     onChange={(e) => setFormData({ ...formData, avatarUrl: e.target.value })}
                   />
 
                   <div className="flex flex-wrap gap-2 items-center pt-1">
-                    <span className="text-xs font-semibold text-base-content/60">Generate Avatar Preset:</span>
+                    <span className="text-xs font-semibold text-base-content/60">Generate Preset:</span>
                     <button
                       type="button"
                       onClick={() => setAvatarPreset("avataaars")}

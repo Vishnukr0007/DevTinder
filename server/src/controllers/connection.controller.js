@@ -168,7 +168,10 @@ export const sendRequest = async (req, res) => {
       });
     }
 
-    const receiverUser = await prisma.user.findUnique({ where: { id: receiverId } });
+    const receiverUser = await prisma.user.findUnique({
+      where: { id: receiverId },
+      select: { id: true, firstName: true, lastName: true, isSuspended: true },
+    });
     if (!receiverUser) {
       return res.status(404).json({ success: false, message: "Target developer not found" });
     }

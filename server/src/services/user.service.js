@@ -87,3 +87,51 @@ export const removeUserSkill = async (userId, name) => {
 
   return true;
 };
+
+export const updateUserAvatar = async (userId, file) => {
+  if (!file) {
+    throw new Error("No image file provided for avatar upload.");
+  }
+
+  // 1. Fetch current user to check for old avatar
+  const existingUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { avatarUrl: true },
+  });
+
+  // 2. Upload new file buffer to Cloudinary (or local fallback)
+  const { uploadFileToCloudinary, deleteFileFromCloudinary } = await import("./cloudinary.service.js");
+  const newAvatarUrl = await uploadFileToCloudinary(file, "avatars");
+
+  // 3. Delete old avatar if present
+  if (existingUser?.avatarUrl) {
+    await deleteFileFromCloudinary(existingUser.avatarUrl);
+  }
+
+  // 4. Save new avatar URL to user in PostgreSQL
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: { avatarUrl: newAvatarUrl },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      headline: true,
+      bio: true,
+      avatarUrl: true,
+      location: true,
+      experienceLevel: true,
+      isOpenToPairing: true,
+      role: true,
+      isEmailVerified: true,
+      githubUrl: true,
+      linkedinUrl: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  return updatedUser;
+};
+

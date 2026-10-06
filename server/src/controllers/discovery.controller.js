@@ -1,4 +1,5 @@
 import prisma from "../config/prisma.js";
+import { getIO, getOnlineUsers } from "../sockets/socket.js";
 
 /**
  * @desc    Get Discovery Feed (Browse Developers card deck)
@@ -11,6 +12,8 @@ export const getDiscoveryFeed = async (req, res) => {
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 10;
     const skip = (page - 1) * limit;
+
+    const { skills, experienceLevel, isOpenToPairing, location } = req.query;
 
     // 1. Fetch user's existing sent/received connection request IDs to exclude
     const existingConnections = await prisma.connectionRequest.findMany({
@@ -25,12 +28,38 @@ export const getDiscoveryFeed = async (req, res) => {
       ...existingConnections.map((c) => (c.senderId === userId ? c.receiverId : c.senderId)),
     ]);
 
+    // Build dynamic where clause
+    const whereClause = {
+      id: { notIn: Array.from(excludedUserIds) },
+      role: "USER",
+    };
+
+    if (experienceLevel && experienceLevel !== "ALL") {
+      whereClause.experienceLevel = experienceLevel.toUpperCase();
+    }
+
+    if (isOpenToPairing !== undefined && isOpenToPairing !== "" && isOpenToPairing !== "ALL") {
+      whereClause.isOpenToPairing = isOpenToPairing === "true";
+    }
+
+    if (location && location.trim()) {
+      whereClause.location = { contains: location.trim(), mode: "insensitive" };
+    }
+
+    if (skills && skills.trim()) {
+      const skillList = skills.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+      if (skillList.length > 0) {
+        whereClause.userSkills = {
+          some: {
+            name: { in: skillList, mode: "insensitive" },
+          },
+        };
+      }
+    }
+
     // 2. Query available developers excluding self and already interacted profiles
     const developers = await prisma.user.findMany({
-      where: {
-        id: { notIn: Array.from(excludedUserIds) },
-        role: "USER",
-      },
+      where: whereClause,
       select: {
         id: true,
         firstName: true,
@@ -301,7 +330,10 @@ export const saveDeveloper = async (req, res) => {
       });
     }
 
-    const targetUser = await prisma.user.findUnique({ where: { id: savedId } });
+    const targetUser = await prisma.user.findUnique({
+      where: { id: savedId },
+      select: { id: true },
+    });
     if (!targetUser) {
       return res.status(404).json({ success: false, message: "Developer not found" });
     }
@@ -427,11 +459,36 @@ export const connectDeveloper = async (req, res) => {
         data: { status: "ACCEPTED" },
       });
 
+      const matchedUser = await prisma.user.findUnique({
+        where: { id: receiverId },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          headline: true,
+          avatarUrl: true,
+          location: true,
+        },
+      });
+
+      // Emit real-time match notification if partner is online
+      const io = getIO();
+      const onlineUsers = getOnlineUsers();
+      const receiverSocketId = onlineUsers.get(receiverId);
+      if (io && receiverSocketId) {
+        const currentUserProfile = await prisma.user.findUnique({
+          where: { id: senderId },
+          select: { id: true, firstName: true, lastName: true, headline: true, avatarUrl: true, location: true },
+        });
+        io.to(receiverSocketId).emit("new_match", { matchedUser: currentUserProfile });
+      }
+
       return res.status(200).json({
         success: true,
         isMatch: true,
         message: "It's a Match! You are now connected with this developer.",
         connection: updatedMatch,
+        matchedUser,
       });
     }
 

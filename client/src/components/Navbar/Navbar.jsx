@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { logoutUser } from "../../store/authSlice.js";
+import { getAvatarUrl } from "../../utils/avatar.js";
 
 export const Navbar = () => {
   const dispatch = useDispatch();
@@ -92,7 +93,7 @@ export const Navbar = () => {
             <div tabIndex={0} role="button" className="btn btn-ghost btn-circle avatar">
               <div className="w-10 rounded-full ring-2 ring-primary">
                 <img
-                  src={user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.email)}`}
+                  src={getAvatarUrl(user.avatarUrl, user.email)}
                   alt="Profile"
                 />
               </div>

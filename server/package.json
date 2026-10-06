@@ -25,12 +25,18 @@
     "@prisma/client": "^6.19.3",
     "axios": "^1.20.0",
     "bcrypt": "^6.0.0",
+    "cloudinary": "^2.11.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.22.2",
+    "express-rate-limit": "^8.7.0",
+    "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
+    "multer": "^2.4.0",
+    "nodemailer": "^10.0.10",
     "prisma": "^6.19.3",
+    "resend": "^6.28.1",
     "socket.io": "^4.8.3"
   }
 }

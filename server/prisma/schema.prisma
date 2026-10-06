@@ -87,6 +87,7 @@ model User {
 
   resetPasswordToken   String?
   resetPasswordExpires DateTime?
+  resetPasswordUsedAt  DateTime?
 
   githubUrl        String?
   linkedinUrl      String?
@@ -158,6 +159,7 @@ model ConnectionRequest {
   updatedAt  DateTime         @updatedAt
 
   @@unique([senderId, receiverId])
+  @@index([senderId, receiverId, status])
 }
 
 model Message {
@@ -169,6 +171,8 @@ model Message {
   content    String   @db.Text
   isRead     Boolean  @default(false)
   createdAt  DateTime @default(now())
+
+  @@index([senderId, receiverId, createdAt])
 }
 
 model SavedDeveloper {

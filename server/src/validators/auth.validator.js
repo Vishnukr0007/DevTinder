@@ -1,3 +1,13 @@
+const isStrongPassword = (password) => {
+  if (!password || typeof password !== "string") return false;
+  const minLength = password.length >= 8;
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+  return minLength && hasUppercase && hasLowercase && hasNumber && hasSpecialChar;
+};
+
 export const validateSignup = (req, res, next) => {
   const { firstName, lastName, email, password } = req.body;
 
@@ -14,8 +24,12 @@ export const validateSignup = (req, res, next) => {
     return res.status(400).json({ success: false, message: "A valid email address is required" });
   }
 
-  if (!password || typeof password !== "string" || password.length < 6) {
-    return res.status(400).json({ success: false, message: "Password must be at least 6 characters long" });
+  if (!isStrongPassword(password)) {
+    return res.status(400).json({
+      success: false,
+      message:
+        "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.",
+    });
   }
 
   next();
@@ -52,8 +66,12 @@ export const validateResetPassword = (req, res, next) => {
     return res.status(400).json({ success: false, message: "Reset token is required" });
   }
 
-  if (!newPassword || typeof newPassword !== "string" || newPassword.length < 6) {
-    return res.status(400).json({ success: false, message: "New password must be at least 6 characters long" });
+  if (!isStrongPassword(newPassword)) {
+    return res.status(400).json({
+      success: false,
+      message:
+        "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.",
+    });
   }
 
   next();

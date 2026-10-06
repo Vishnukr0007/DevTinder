@@ -4,6 +4,7 @@ import { useDispatch } from "react-redux";
 import { loginUser } from "../../store/authSlice.js";
 import Button from "../../components/Button/Button.jsx";
 import SocialAuthButtons from "../../components/SocialAuthButtons/SocialAuthButtons.jsx";
+import PasswordInput from "../../components/PasswordInput/PasswordInput.jsx";
 
 export const Login = () => {
   const dispatch = useDispatch();
@@ -59,7 +60,7 @@ export const Login = () => {
             </label>
             <input
               type="email"
-              placeholder="alex.dev@example.com"
+              placeholder="name@example.com"
               required
               className="input input-bordered rounded-xl w-full"
               value={formData.email}
@@ -67,22 +68,21 @@ export const Login = () => {
             />
           </div>
 
-          <div className="form-control">
-            <label className="label justify-between">
-              <span className="label-text font-bold">Password</span>
+          <PasswordInput
+            id="login-password"
+            name="password"
+            label="Password"
+            value={formData.password}
+            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            placeholder="••••••••"
+            required
+            autoComplete="current-password"
+            rightHeaderAction={
               <Link to="/forgot-password" className="label-text-alt text-primary font-semibold hover:underline">
                 Forgot?
               </Link>
-            </label>
-            <input
-              type="password"
-              placeholder="••••••••"
-              required
-              className="input input-bordered rounded-xl w-full"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            />
-          </div>
+            }
+          />
 
           <Button type="submit" loading={loading} className="w-full rounded-xl btn-primary mt-2">
             Login to Account 🚀

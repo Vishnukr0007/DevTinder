@@ -1,7 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import SkillBadge from "../SkillBadge/SkillBadge.jsx";
+import { getAvatarUrl } from "../../utils/avatar.js";
 
 export const DeveloperCard = ({ developer, onConnect, onSkip, onSave, isSaved }) => {
+  const [swipeDirection, setSwipeDirection] = useState(null);
+
   if (!developer) return null;
 
   const {
@@ -22,16 +25,41 @@ export const DeveloperCard = ({ developer, onConnect, onSkip, onSave, isSaved })
 
   const fullName = `${firstName || ""} ${lastName || ""}`.trim() || "Developer";
 
+  const handleSkipClick = () => {
+    setSwipeDirection("left");
+    setTimeout(() => {
+      onSkip && onSkip(id);
+      setSwipeDirection(null);
+    }, 250);
+  };
+
+  const handleConnectClick = () => {
+    setSwipeDirection("right");
+    setTimeout(() => {
+      onConnect && onConnect(id);
+      setSwipeDirection(null);
+    }, 250);
+  };
+
+  const getSwipeStyle = () => {
+    if (swipeDirection === "left") {
+      return "-translate-x-64 -rotate-12 opacity-0";
+    }
+    if (swipeDirection === "right") {
+      return "translate-x-64 rotate-12 opacity-0";
+    }
+    return "translate-x-0 rotate-0 opacity-100";
+  };
+
   return (
-    <div className="card w-full max-w-md bg-base-100 shadow-2xl border border-base-300 rounded-3xl overflow-hidden hover:shadow-primary/10 transition-all duration-300">
+    <div
+      className={`card w-full max-w-md bg-base-100 shadow-2xl border border-base-300 rounded-3xl overflow-hidden hover:shadow-primary/10 transition-all duration-300 transform ${getSwipeStyle()}`}
+    >
       {/* Header Image / Avatar Section */}
       <div className="relative bg-gradient-to-r from-primary/20 via-secondary/20 to-accent/20 p-6 pt-8 text-center">
         <div className="avatar mx-auto mb-3">
           <div className="w-28 rounded-full ring-4 ring-primary ring-offset-2 ring-offset-base-100 shadow-lg">
-            <img
-              src={avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(fullName)}`}
-              alt={fullName}
-            />
+            <img src={getAvatarUrl(avatarUrl, fullName)} alt={fullName} />
           </div>
         </div>
         <h2 className="text-2xl font-extrabold text-base-content tracking-tight">{fullName}</h2>
@@ -102,8 +130,8 @@ export const DeveloperCard = ({ developer, onConnect, onSkip, onSave, isSaved })
         {/* Action Controls */}
         <div className="card-actions justify-between items-center pt-4">
           <button
-            onClick={() => onSkip && onSkip(id)}
-            className="btn btn-circle btn-lg btn-outline btn-error shadow-md hover:scale-105 transition-transform"
+            onClick={handleSkipClick}
+            className="btn btn-circle btn-lg btn-outline btn-error shadow-md hover:scale-110 active:scale-95 transition-all"
             title="Skip (Swipe Left)"
           >
             ❌
@@ -111,15 +139,17 @@ export const DeveloperCard = ({ developer, onConnect, onSkip, onSave, isSaved })
 
           <button
             onClick={() => onSave && onSave(id)}
-            className={`btn btn-circle btn-md ${isSaved ? "btn-warning" : "btn-ghost"}`}
+            className={`btn btn-circle btn-md transition-all hover:scale-110 ${
+              isSaved ? "btn-warning shadow-md" : "btn-ghost"
+            }`}
             title="Bookmark Developer"
           >
             ⭐
           </button>
 
           <button
-            onClick={() => onConnect && onConnect(id)}
-            className="btn btn-circle btn-lg btn-primary shadow-lg shadow-primary/30 hover:scale-105 transition-transform"
+            onClick={handleConnectClick}
+            className="btn btn-circle btn-lg btn-primary shadow-lg shadow-primary/30 hover:scale-110 active:scale-95 transition-all"
             title="Connect (Swipe Right)"
           >
             ⚡
@@ -131,3 +161,4 @@ export const DeveloperCard = ({ developer, onConnect, onSkip, onSave, isSaved })
 };
 
 export default DeveloperCard;
+

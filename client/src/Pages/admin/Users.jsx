@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import Loader from "../../components/Loader/Loader.jsx";
 import { fetchApi } from "../../services/api.js";
+import { useToast } from "../../context/ToastContext.jsx";
 
 export const AdminUsers = () => {
+  const { success, error } = useToast();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -43,11 +45,11 @@ export const AdminUsers = () => {
     try {
       const res = await fetchApi(`/admin/users/${userId}/suspend`, { method: "POST", body: { isSuspended: !isSuspended } });
       if (res.success) {
-        setFeedback(res.message);
+        success(res.message || "User suspension status updated");
         await loadUsers();
       }
     } catch (err) {
-      alert(err.message || "Failed to toggle suspension");
+      error(err.message || "Failed to toggle suspension");
     }
   };
 
@@ -56,11 +58,12 @@ export const AdminUsers = () => {
     try {
       const res = await fetchApi(`/admin/users/${userId}`, { method: "DELETE" });
       if (res.success) {
-        setFeedback("User account deleted");
+        success("User account deleted successfully");
         await loadUsers();
       }
     } catch (err) {
       console.error(err);
+      error(err.message || "Failed to delete user");
     }
   };
 
