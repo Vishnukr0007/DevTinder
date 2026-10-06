@@ -90,12 +90,15 @@ app.get('/api/health', asyncHandler(async (req, res) => {
   );
 }));
 
-// Root Route
-app.get('/', (req, res) => {
-  res.status(200).json(
-    new ApiResponse(200, { name: 'DevTinder API', version: '1.0.0' }, 'Welcome to DevTinder API')
-  );
-});
+// Serve static client assets in production
+if (process.env.NODE_ENV === 'production') {
+  const clientDistPath = path.join(__dirname, '../../client/dist');
+  app.use(express.static(clientDistPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(clientDistPath, 'index.html'));
+  });
+}
 
 // 404 Route Not Found
 app.use(notFoundHandler);

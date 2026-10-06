@@ -34,10 +34,13 @@ export const uploadFileToCloudinary = async (file, folder = 'avatars') => {
   }
 
   if (isCloudinaryConfigured) {
+    const parentFolder = env.CLOUDINARY_FOLDER || 'DevTinder';
+    const targetCloudinaryFolder = folder ? `${parentFolder}/${folder}` : parentFolder;
+
     return new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
-          folder: `devtinder/${folder}`,
+          folder: targetCloudinaryFolder,
           resource_type: 'auto',
         },
         (error, result) => {
