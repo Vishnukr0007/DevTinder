@@ -3,6 +3,7 @@ import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { env } from './config/env.js';
 import prisma from './config/prisma.js';
@@ -90,14 +91,32 @@ app.get('/api/health', asyncHandler(async (req, res) => {
   );
 }));
 
-// Serve static client assets in production
+// Root API Status Landing Route
+app.get('/', (req, res) => {
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        service: 'DevTinder Backend API & Socket Server',
+        status: 'Online',
+        healthCheck: '/api/health',
+        documentation: 'https://github.com/Vishnukr0007/DevTinder'
+      },
+      'Welcome to DevTinder Backend API Service'
+    )
+  );
+});
+
+// Serve static client assets in single-instance production mode (if client dist exists)
 if (process.env.NODE_ENV === 'production') {
   const clientDistPath = path.join(__dirname, '../../client/dist');
-  app.use(express.static(clientDistPath));
-  app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api')) return next();
-    res.sendFile(path.join(clientDistPath, 'index.html'));
-  });
+  if (fs.existsSync(clientDistPath)) {
+    app.use(express.static(clientDistPath));
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api')) return next();
+      res.sendFile(path.join(clientDistPath, 'index.html'));
+    });
+  }
 }
 
 // 404 Route Not Found
