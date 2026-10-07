@@ -466,6 +466,15 @@ export const verifyEmail = async (req, res) => {
   }
 };
 
+const getClientUrl = () => {
+  let url = process.env.CLIENT_URL || process.env.CORS_ORIGIN || "http://localhost:5173";
+  url = url.trim().replace(/\/+$/, "");
+  if (!/^https?:\/\//i.test(url)) {
+    url = `https://${url}`;
+  }
+  return url;
+};
+
 /**
  * @desc    8. Initiate Google OAuth 2.0 Flow
  * @route   GET /api/auth/google
@@ -477,7 +486,7 @@ export const googleRedirect = (req, res) => {
     return res.redirect(url);
   } catch (error) {
     console.error("Google OAuth Redirect Error:", error);
-    const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+    const clientUrl = getClientUrl();
     return res.redirect(`${clientUrl}/login?error=google_oauth_failed`);
   }
 };
@@ -488,7 +497,7 @@ export const googleRedirect = (req, res) => {
  * @access  Public
  */
 export const googleCallback = async (req, res) => {
-  const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+  const clientUrl = getClientUrl();
   try {
     const { code } = req.query;
     if (!code) {
@@ -529,7 +538,7 @@ export const githubRedirect = (req, res) => {
     return res.redirect(url);
   } catch (error) {
     console.error("GitHub OAuth Redirect Error:", error);
-    const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+    const clientUrl = getClientUrl();
     return res.redirect(`${clientUrl}/login?error=github_oauth_failed`);
   }
 };
@@ -540,7 +549,7 @@ export const githubRedirect = (req, res) => {
  * @access  Public
  */
 export const githubCallback = async (req, res) => {
-  const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+  const clientUrl = getClientUrl();
   try {
     const { code } = req.query;
     if (!code) {
