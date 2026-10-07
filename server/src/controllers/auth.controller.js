@@ -520,7 +520,7 @@ export const googleCallback = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    return res.redirect(`${clientUrl}/app/dashboard`);
+    return res.redirect(`${clientUrl}/app/dashboard?token=${token}`);
   } catch (error) {
     console.error("Google OAuth Callback Error:", error.message);
     return res.redirect(`${clientUrl}/login?error=google_auth_failed`);
@@ -572,7 +572,7 @@ export const githubCallback = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    return res.redirect(`${clientUrl}/app/dashboard`);
+    return res.redirect(`${clientUrl}/app/dashboard?token=${token}`);
   } catch (error) {
     console.error("GitHub OAuth Callback Error:", error.message);
     return res.redirect(`${clientUrl}/login?error=github_auth_failed`);

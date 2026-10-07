@@ -9,12 +9,22 @@ export const fetchCurrentUser = createAsyncThunk(
   "auth/fetchCurrentUser",
   async (_, { rejectWithValue }) => {
     try {
+      // Check for OAuth redirect token in URL query parameter
+      const urlParams = new URLSearchParams(window.location.search);
+      const tokenFromUrl = urlParams.get("token");
+      if (tokenFromUrl) {
+        localStorage.setItem("token", tokenFromUrl);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+
       const data = await authApi.getMe();
       if (data.success && data.user) {
         return data.user;
       }
+      localStorage.removeItem("token");
       return rejectWithValue("Failed to retrieve user session");
     } catch (err) {
+      localStorage.removeItem("token");
       return rejectWithValue(err.message || "Unauthenticated");
     }
   }
@@ -26,6 +36,9 @@ export const loginUser = createAsyncThunk(
     try {
       const data = await authApi.login(credentials);
       if (data.success) {
+        if (data.token) {
+          localStorage.setItem("token", data.token);
+        }
         // Fetch full profile after login
         const fullProfileRes = await authApi.getMe().catch(() => null);
         return fullProfileRes?.user || data.user;
@@ -43,6 +56,9 @@ export const signupUser = createAsyncThunk(
     try {
       const data = await authApi.signup(userData);
       if (data.success) {
+        if (data.token) {
+          localStorage.setItem("token", data.token);
+        }
         const fullProfileRes = await authApi.getMe().catch(() => null);
         return fullProfileRes?.user || data.user;
       }
@@ -58,10 +74,12 @@ export const logoutUser = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       await authApi.logout();
-      return true;
     } catch (err) {
-      return rejectWithValue(err.message || "Logout failed");
+      console.warn("Logout API call warning:", err.message);
+    } finally {
+      localStorage.removeItem("token");
     }
+    return true;
   }
 );
 
