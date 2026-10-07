@@ -90,16 +90,27 @@ export const getGithubUser = async (code) => {
     { headers: { Accept: "application/json" } }
   );
 
-  const accessToken = tokenRes.data.access_token;
+  const accessToken = tokenRes.data?.access_token;
+  if (!accessToken) {
+    throw new Error(
+      `GitHub Token Exchange Failed: ${tokenRes.data?.error_description || tokenRes.data?.error || "Invalid authorization code or credentials"}`
+    );
+  }
 
   const userRes = await axios.get("https://api.github.com/user", {
-    headers: { Authorization: `token ${accessToken}` },
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "User-Agent": "DevTinder-App",
+    },
   });
 
   let email = userRes.data.email;
   if (!email) {
     const emailRes = await axios.get("https://api.github.com/user/emails", {
-      headers: { Authorization: `token ${accessToken}` },
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "User-Agent": "DevTinder-App",
+      },
     });
     const primaryObj = emailRes.data.find((e) => e.primary) || emailRes.data[0];
     email = primaryObj ? primaryObj.email : `${userRes.data.login}@github.user`;
