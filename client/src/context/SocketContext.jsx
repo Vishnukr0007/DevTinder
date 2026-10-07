@@ -5,7 +5,7 @@ import { useToast } from "./ToastContext.jsx";
 
 const SocketContext = createContext(null);
 
-const SOCKET_SERVER_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:8000";
+const SOCKET_SERVER_URL = import.meta.env.VITE_SOCKET_URL || (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, "") : "http://localhost:8000");
 
 export const SocketProvider = ({ children }) => {
   const { user, isAuthenticated } = useSelector((state) => state.auth);

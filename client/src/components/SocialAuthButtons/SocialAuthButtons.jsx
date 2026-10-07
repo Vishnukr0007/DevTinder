@@ -5,7 +5,7 @@ export const SocialAuthButtons = ({ title = "Or continue with" }) => {
 
   const handleSocialClick = (provider) => {
     const endpoint = provider === "Google" ? "/api/auth/google" : "/api/auth/github";
-    const serverUrl = "http://localhost:8000";
+    const serverUrl = import.meta.env.VITE_SOCKET_URL || (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, "") : "http://localhost:8000");
     window.location.href = `${serverUrl}${endpoint}`;
   };
 
